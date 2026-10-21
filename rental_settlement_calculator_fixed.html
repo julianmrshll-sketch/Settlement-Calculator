@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rental Settlement Calculator</title>
+<style>
+  :root { --navy:#102036; --blue:#0877e8; --bg:#eef4fb; --ink:#172b43; --muted:#60748c; --line:#d9e3ef; --green:#00a982; --amber:#ffb000; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  header { text-align:center; padding:28px 16px 20px; }
+  h1 { margin:0; font-size:clamp(26px,4vw,38px); letter-spacing:-.8px; }
+  header p { color:var(--muted); margin:8px 0 0; }
+  main { max-width:1200px; margin:0 auto; padding:0 16px 36px; display:grid; grid-template-columns:minmax(0,1.8fr) minmax(300px,.9fr); gap:22px; align-items:start; }
+  .inputs,.right { display:grid; gap:16px; }
+  .card { background:#fff; border:1px solid #e6edf5; border-radius:13px; padding:20px; box-shadow:0 5px 14px rgba(22,44,70,.07); }
+  .section-title { font-weight:700; display:flex; align-items:center; gap:10px; margin:0 0 17px; }
+  .ico { width:31px;height:31px;display:inline-grid;place-items:center;border-radius:8px;color:#fff;font-size:18px; }
+  .blue{background:var(--blue)} .green{background:var(--green)} .purple{background:#a83bf0} .orange{background:#ff8a00}
+  label { display:block; font-size:13px; font-weight:600; margin:0 0 7px; color:#344b65; }
+  input { width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:6px; font:inherit; color:var(--ink); background:#fbfdff; outline:none; }
+  [hidden] { display:none !important; }
+  input:focus { border-color:var(--blue); box-shadow:0 0 0 2px rgba(8,119,232,.13); }
+  .help { font-size:12px; color:var(--muted); margin:10px 0 0; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .summary { background:linear-gradient(145deg,#13253b,#0a1729); color:white; border-radius:13px; padding:21px; box-shadow:0 6px 14px rgba(16,32,54,.16); }
+  .summary .section-title { margin-bottom:18px; }
+  .metrics { display:grid; grid-template-columns:1fr 1fr; gap:18px 12px; }
+  .metric small { display:block; color:#c3d0df; font-size:12px; margin-bottom:3px; }
+  .metric strong { display:block; font-size:clamp(17px,2vw,22px); line-height:1.25; overflow-wrap:anywhere; }
+  .metric .yellow { color:#ffbd19; } .metric .mint { color:#00e0b2; }
+  .escalation { border-top:1px solid #33475e; margin-top:18px; padding-top:14px; }
+  .escalation small { display:block;color:#c3d0df;font-size:12px; }
+  .mini-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .mini { background:white; padding:14px; border-radius:11px; box-shadow:0 4px 10px rgba(22,44,70,.07); display:flex;gap:10px;align-items:center;min-width:0; }
+  .mini .mini-ico { background:#d8fbf1;color:#008b69;border-radius:7px;padding:7px;font-weight:700; }
+  .mini small { display:block;color:var(--muted);font-size:11px; }
+  .mini strong { display:block;font-size:14px;overflow-wrap:anywhere;color:#172b43 !important;-webkit-text-fill-color:#172b43;opacity:1;visibility:visible;font-weight:700; }
+  .schedule-head { display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px; }
+  .schedule-head .section-title { margin:0; }
+  button { cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:7px;padding:8px 11px;font:600 12px inherit;color:var(--ink); }
+  button:hover { background:#f1f6fc; }
+  .table-wrap { overflow:auto; max-height:390px; border-radius:7px; }
+  table { border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap; }
+  th { position:sticky;top:0;background:#edf3f9;text-align:left;padding:10px 9px;color:#3d526a; }
+  td { padding:10px 9px;border-bottom:1px solid #edf1f6; }
+  tbody tr:nth-child(even) { background:#f8fafc; }
+  td.money, th.money { text-align:right; }
+  tbody tr.anniversary td { font-weight:700; background:#fff3d6; color:#172b43; }
+  .foot { text-align:center;font-size:12px;color:var(--muted);padding-top:12px; }
+  .note { font-size:12px;color:var(--muted);margin:12px 0 0; }
+  @media(max-width:800px) { main{grid-template-columns:1fr;} .right{grid-row:1;} }
+  @media(max-width:480px) { .card,.summary{padding:16px;} .two{grid-template-columns:1fr;} .metrics{gap:14px 8px;} .mini-cards{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>▦ Rental Settlement Calculator</h1>
+  <p>Calculate rental settlements with annual escalation over time</p>
+</header>
+<main style="display:flex;flex-direction:column;max-width:900px;gap:16px">
+  <section class="inputs" style="display:contents">
+    <div class="card">
+      <h2 class="section-title"><span class="ico purple">◷</span> Term</h2>
+      <label for="termMode">How was the term provided?</label>
+      <select id="termMode" style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fbfdff;color:var(--ink);margin-bottom:14px">
+        <option value="years">Years and additional months</option>
+        <option value="totalMonths">Total term in months + months paid to date</option>
+      </select>
+      <div id="yearInputs" class="two">
+        <div><label for="years">Years</label><input id="years" type="number" min="0" max="50" step="1" placeholder="e.g. 5"></div>
+        <div><label for="months">Additional Months</label><input id="months" type="number" min="0" max="11" step="1" placeholder="e.g. 0"></div>
+      </div>
+      <div id="monthInputs" class="two" hidden>
+        <div><label for="totalMonths">Total Term (Months)</label><input id="totalMonths" type="number" min="1" max="600" step="1" placeholder="e.g. 60"></div>
+        <div><label for="monthsPaid">Months Paid to Date</label><input id="monthsPaid" type="number" min="0" max="600" step="1" placeholder="e.g. 40"></div>
+      </div>
+      <p class="help" id="termHelp">Specify the total duration of the rental agreement.</p>
+    </div>
+    <div class="card">
+      <h2 class="section-title"><span class="ico green">R</span> Rental</h2>
+      <label for="rent">Monthly Rental Amount (ZAR)</label>
+      <input id="rent" type="number" min="0" step="0.01" placeholder="e.g. 1500.00">
+      <p class="help">Enter the initial monthly rental amount before escalation.</p>
+    </div>
+    <div class="card">
+      <h2 class="section-title"><span class="ico orange">↗</span> Escalation</h2>
+      <label for="escalation">Annual Escalation Rate (%)</label>
+      <input id="escalation" type="number" min="0" max="1000" step="0.01" placeholder="e.g. 15">
+      <p class="help">Enter the annual percentage increase in rental amount.</p>
+    </div>
+    <div class="card" id="dateSettings">
+      <h2 class="section-title"><span class="ico blue">▦</span> Start Date &amp; Paid To Date</h2>
+      <div class="two">
+        <div>
+          <label for="startDate">Settlement Start Date</label>
+          <input id="startDate" type="date">
+          <p class="help" id="startDateHelp">Select the date when rental payments will begin.</p>
+        </div>
+        <div>
+          <label for="asOf">Current date or last payment date</label>
+          <input id="asOf" type="date">
+          <p class="help">Used to estimate payments made to date when entering a start date manually. In months mode, this date also determines the estimated start date.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="summary">
+    <h2 class="section-title">▦ &nbsp; Settlement Summary</h2>
+    <div class="metrics">
+      <div class="metric"><small>Total Settlement</small><strong id="total">R 0.00</strong></div>
+      <div class="metric"><small>Remaining Amount</small><strong class="yellow" id="remaining">R 0.00</strong></div>
+      <div class="metric"><small>Paid to Date*</small><strong class="mint" id="paid">R 0.00</strong></div>
+      <div class="metric"><small>Duration</small><strong id="duration">0 months</strong></div>
+    </div>
+    <div class="escalation"><small>Escalation</small><strong id="escalationRange">R 0.00 → R 0.00</strong></div>
+    <div class="mini-cards" style="margin-top:14px">
+      <div class="mini"><span class="mini-ico">R</span><div><small>First Payment</small><strong id="first">R 0.00</strong></div></div>
+      <div class="mini"><span class="mini-ico" style="background:#fff2cf;color:#a66a00">↗</span><div><small>Final Payment</small><strong id="last">R 0.00</strong></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="schedule-head">
+      <h2 class="section-title">▥ &nbsp; Payment Schedule</h2>
+      <button id="export">⇩ Export CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>No.</th><th>Date</th><th class="money">Monthly Rental</th><th class="money">Cumulative</th></tr></thead>
+        <tbody id="schedule"></tbody>
+      </table>
+    </div>
+    <div class="foot" id="scheduleFoot">Showing 0 payments</div>
+    <p class="note">*Paid to Date is an estimate based on the entered months paid or selected date, not a record of actual payments received.</p>
+  </div>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const inputs = ['startDate','rent','years','months','totalMonths','monthsPaid','escalation','asOf'];
+  const money = n => new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number.isFinite(n) ? n : 0).replace('ZAR','R');
+  const dateFmt = d => new Intl.DateTimeFormat('en-ZA',{year:'numeric',month:'short'}).format(d);
+  const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  function addMonths(date, amount) {
+    const d = new Date(date.getFullYear(), date.getMonth(), 1);
+    const targetMonth = d.getMonth() + amount;
+    const lastDay = new Date(d.getFullYear(), targetMonth + 1, 0).getDate();
+    d.setMonth(targetMonth);
+    d.setDate(Math.min(date.getDate(), lastDay));
+    return d;
+  }
+  function autoSetStartDate() {
+    if ($('termMode').value !== 'totalMonths') return;
+    const paidCount = Math.max(0, Math.floor(Number($('monthsPaid').value) || 0));
+    const totalMonths = Math.max(0, Math.floor(Number($('totalMonths').value) || 0));
+    if (!totalMonths || !paidCount || !$('asOf').value) { $('startDate').value = ''; return; }
+    const referenceRaw = $('asOf').value || isoLocal(new Date());
+    const [ry,rm,rd] = referenceRaw.split('-').map(Number);
+    const referenceDate = new Date(ry,rm-1,rd);
+    // The entered date is the current date or last payment date; monthsPaid includes that month.
+    const inferredStart = addMonths(referenceDate, -(Math.max(1, paidCount) - 1));
+    $('startDate').value = isoLocal(inferredStart);
+  }
+  function calc() {
+    const startRaw = $('startDate').value;
+    const start = startRaw ? new Date(...startRaw.split('-').map((v,i) => i === 1 ? Number(v)-1 : Number(v))) : null;
+    const rent = Math.max(0, Number($('rent').value) || 0);
+    const mode = $('termMode').value;
+    const years = Math.max(0, Math.floor(Number($('years').value) || 0));
+    const months = Math.max(0, Math.min(11, Math.floor(Number($('months').value) || 0)));
+    const enteredTotalMonths = Math.max(0, Math.floor(Number($('totalMonths').value) || 0));
+    const monthsPaid = Math.max(0, Math.floor(Number($('monthsPaid').value) || 0));
+    const rate = Math.max(0, Number($('escalation').value) || 0) / 100;
+    const duration = Math.min(600, mode === 'totalMonths' ? enteredTotalMonths : years*12+months);
+    const asOfRaw = $('asOf').value || isoLocal(new Date());
+    const [ay,am,ad] = asOfRaw.split('-').map(Number);
+    const asOf = new Date(ay,am-1,ad);
+    const paidCount = mode === 'totalMonths' ? Math.min(duration, monthsPaid) : null;
+    const payments = [];
+    let total = 0, paid = 0;
+    for (let i=0;i<duration;i++) {
+      const date = start ? addMonths(start,i) : null;
+      const amount = rent * Math.pow(1+rate,Math.floor(i/12));
+      total += amount;
+      if ((mode === 'totalMonths' && i < paidCount) || (mode !== 'totalMonths' && date && date <= asOf)) paid += amount;
+      payments.push({number:i+1,date,year:Math.floor(i/12)+1,amount,cumulative:total});
+    }
+    const last = payments.length ? payments[payments.length-1].amount : 0;
+    $('total').textContent = money(total);
+    $('paid').textContent = money(paid);
+    $('remaining').textContent = money(Math.max(0,total-paid));
+    $('duration').textContent = `${duration} months`;
+    $('first').textContent = money(payments.length ? payments[0].amount : 0);
+    $('last').textContent = money(last);
+    $('escalationRange').textContent = `${money(rent)} → ${money(last)}`;
+    if (!start) {
+      $('schedule').innerHTML = '';
+      $('scheduleFoot').textContent = 'Enter a start date to generate the dated schedule';
+      window.currentPayments = [];
+      return;
+    }
+    $('schedule').innerHTML = payments.map(p => { const anniversary = p.number > 1 && (p.number - 1) % 12 === 0; return `<tr${anniversary ? ' class="anniversary"' : ''}><td>${p.number}</td><td>${dateFmt(p.date)}</td><td class="money">${money(p.amount)}</td><td class="money">${money(p.cumulative)}</td></tr>`; }).join('');
+    $('scheduleFoot').textContent = `Showing ${payments.length} of ${payments.length} payments`;
+    window.currentPayments = payments;
+  }
+  function updateTermMode() {
+    const monthMode = $('termMode').value === 'totalMonths';
+    $('yearInputs').hidden = monthMode;
+    $('monthInputs').hidden = !monthMode;
+    $('startDate').readOnly = monthMode;
+    $('startDate').style.background = monthMode ? '#eef3f8' : '#fbfdff';
+    $('startDate').readOnly = monthMode;
+    $('startDate').style.background = monthMode ? '#eef3f8' : '#fbfdff';
+    $('startDateHelp').textContent = monthMode
+      ? 'Automatically estimated from the current date or last payment date and months paid.'
+      : 'Select the date when rental payments will begin.';
+    $('dateSettings').hidden = false;
+    $('termHelp').textContent = monthMode
+      ? 'Enter the full agreement term and how many monthly instalments have already been paid. Paid-to-date is calculated from the first payment through the number of months entered.'
+      : 'Specify the total duration of the rental agreement. Paid-to-date is estimated from the selected date.';
+    if (monthMode) autoSetStartDate();
+    calc();
+  }
+  inputs.forEach(id => $(id).addEventListener('input', () => {
+    if ($('termMode').value === 'totalMonths' && ['monthsPaid','totalMonths','asOf'].includes(id)) autoSetStartDate();
+    calc();
+  }));
+  $('termMode').addEventListener('change',updateTermMode);
+  $('export').addEventListener('click', () => {
+    const payments = window.currentPayments || [];
+    const rows = [['Payment Number','Payment Date','Escalation Year','Monthly Rental (ZAR)','Cumulative Paid (ZAR)']];
+    let cumulative = 0;
+    payments.forEach(p => {
+      cumulative += p.amount;
+      rows.push([p.number,isoLocal(p.date),p.year,p.amount.toFixed(2),cumulative.toFixed(2)]);
+    });
+    const csv = rows.map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'rental-payment-schedule.csv'; a.click();
+    URL.revokeObjectURL(url);
+  });
+  updateTermMode();
+})();
+</script>
+</body>
+</html>
